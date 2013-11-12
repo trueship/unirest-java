@@ -50,14 +50,15 @@ import com.mashape.unirest.http.options.Option;
 import com.mashape.unirest.http.options.Options;
 import com.mashape.unirest.http.utils.ClientFactory;
 import com.mashape.unirest.request.HttpRequest;
+import org.apache.log4j.Logger;
 
 public class HttpClientHelper {
 
 	private static final String USER_AGENT = "unirest-java/1.1";
-	
+
 	private static <T> FutureCallback<org.apache.http.HttpResponse> prepareCallback(final Class<T> responseClass, final Callback<T> callback) {
 		if (callback == null) return null;
-		
+
 		return new FutureCallback<org.apache.http.HttpResponse>() {
 
 			public void cancelled() {
@@ -71,23 +72,23 @@ public class HttpClientHelper {
 			public void failed(Exception arg0) {
 				callback.failed(new UnirestException(arg0));
 			}
-			
+
 		};
 	}
-	
+
 	@SuppressWarnings("deprecation")
 	public static <T> Future<HttpResponse<T>> requestAsync(HttpRequest request, final Class<T> responseClass, Callback<T> callback) {
 		HttpUriRequest requestObj = prepareRequest(request);
-		
+
 		HttpAsyncClient asyncHttpClient = ClientFactory.getAsyncHttpClient();
 		if (asyncHttpClient instanceof CloseableHttpAsyncClient) {
 			if (asyncHttpClient.getStatus() != IOReactorStatus.ACTIVE) {
 				asyncHttpClient.start();
 			}
 		}
-		
+
 		final Future<org.apache.http.HttpResponse> future = asyncHttpClient.execute(requestObj, prepareCallback(responseClass, callback));
-		
+
 		return new Future<HttpResponse<T>>() {
 
 			public boolean cancel(boolean mayInterruptIfRunning) {
@@ -116,25 +117,32 @@ public class HttpClientHelper {
 			}
 		};
 	}
-	
+
 	public static <T> HttpResponse<T> request(HttpRequest request, Class<T> responseClass) throws UnirestException {
 		HttpUriRequest requestObj = prepareRequest(request);
 		HttpClient client = ClientFactory.getHttpClient(); // The DefaultHttpClient is thread-safe
 		org.apache.http.HttpResponse response;
+        final Logger trace = Logger.getLogger("trace");
 		try {
+            if (trace.isDebugEnabled())
+                trace.info("Unirest request:\n" + requestObj);
 			response = client.execute(requestObj);
 		} catch (Exception e) {
 			throw new UnirestException(e);
 		}
-		
-		return new HttpResponse<T>(response, responseClass);
+
+        final HttpResponse<T> httpResponse = new HttpResponse<T>(response, responseClass);
+        if (trace.isDebugEnabled())
+            trace.info("Unirest response:\n" + httpResponse.getHeaders() + "\n" + httpResponse.getBody());
+
+        return httpResponse;
 	}
-	
+
 	private static HttpUriRequest prepareRequest(HttpRequest request) {
-		
+
 		request.header("user-agent", USER_AGENT);
 		request.header("accept-encoding", "gzip");
-		
+
 		Object defaultHeaders = Options.getOption(Option.DEFAULT_HEADERS);
 		if (defaultHeaders != null) {
 			@SuppressWarnings("unchecked")
@@ -143,9 +151,9 @@ public class HttpClientHelper {
 				request.header(entry.getKey(), entry.getValue());
 			}
 		}
-		
+
 		HttpUriRequest reqObj = null;
-		
+
 		switch(request.getHttpMethod()) {
 		case GET:
 			reqObj = new HttpGet(request.getUrl());
@@ -163,19 +171,19 @@ public class HttpClientHelper {
 			reqObj = new HttpPatchWithBody(request.getUrl());
 			break;
 		}
-		
+
 		for(Map.Entry<String, String> entry : request.getHeaders().entrySet()) {
 			reqObj.addHeader(entry.getKey(), entry.getValue());
 		}
-		
+
 		// Set body
 		if (request.getHttpMethod() != HttpMethod.GET) {
 			if (request.getBody() != null) {
 				((HttpEntityEnclosingRequestBase) reqObj).setEntity(request.getBody().getEntity());
 			}
 		}
-		
+
 		return reqObj;
 	}
-	
+
 }
