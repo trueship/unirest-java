@@ -45,14 +45,14 @@ public class HttpResponse<T> {
 	@SuppressWarnings("unchecked")
 	public HttpResponse(org.apache.http.HttpResponse response, Class<T> responseClass) {
 		HttpEntity responseEntity = response.getEntity();
-		
+
 		Header[] allHeaders = response.getAllHeaders();
 		this.headers = new HashMap<String, String>();
 		for(Header header : allHeaders) {
 			headers.put(header.getName().toLowerCase(), header.getValue());
 		}
 		this.code = response.getStatusLine().getStatusCode();
-		
+
 		if (responseEntity != null) {
 			try {
 				byte[] rawBody;
@@ -74,8 +74,8 @@ public class HttpResponse<T> {
 				} else {
 					throw new Exception("Unknown result type. Only String, JsonNode and InputStream are supported.");
 				}
-			} catch (Exception e) {
-				throw new RuntimeException(e);
+            } catch (Exception e) {
+				throw new RuntimeException("Unable to parse response.", e);
 			}
 		}
 	}
