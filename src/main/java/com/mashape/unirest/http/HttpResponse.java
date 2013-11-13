@@ -34,6 +34,7 @@ import java.util.Map;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
+import org.apache.log4j.Logger;
 
 public class HttpResponse<T> {
 
@@ -66,7 +67,12 @@ public class HttpResponse<T> {
 
 				if (JsonNode.class.equals(responseClass)) {
 					String jsonString = new String(rawBody).trim();
-					this.body = (T) new JsonNode(jsonString);
+                    try {
+    					this.body = (T) new JsonNode(jsonString);
+                    } catch (RuntimeException e) {
+                        Logger.getLogger(HttpResponse.class).error("Unable to parse response as JSON:\n" + new String(rawBody));
+                        throw e;
+                    }
 				} else if (String.class.equals(responseClass)) {
 					this.body = (T) new String(rawBody);
 				} else if (InputStream.class.equals(responseClass)) {
