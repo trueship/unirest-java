@@ -80,6 +80,14 @@ public class UnirestTest {
 	}
 	
 	@Test
+	public void testGetMultiple() throws JSONException, UnirestException { 
+		for(int i=1;i<=20;i++) {
+			HttpResponse<JsonNode> response = Unirest.get("http://httpbin.org/get?try=" + i).asJson();
+			assertEquals(response.getBody().getObject().getJSONObject("args").getString("try"), ((Integer)i).toString());
+		}
+	}
+	
+	@Test
 	public void testGetFields() throws JSONException, UnirestException { 
 		HttpResponse<JsonNode> response = Unirest.get("http://httpbin.org/get").field("name", "mark").field("nick", "thefosk").asJson();
 		assertEquals(response.getBody().getObject().getJSONObject("args").getString("name"), "mark");
@@ -93,6 +101,14 @@ public class UnirestTest {
 		
 		response = Unirest.delete("http://httpbin.org/delete").field("name", "mark").asJson();
 		assertEquals("name=mark", response.getBody().getObject().getString("data"));
+	}
+	
+	@Test
+	public void testDeleteBody() throws JSONException, UnirestException {
+		String body = "{\"jsonString\":{\"members\":\"members1\"}}";
+		HttpResponse<JsonNode> response = Unirest.delete("http://httpbin.org/delete").body(body).asJson();
+		assertEquals(200, response.getCode());
+		assertEquals(body, response.getBody().getObject().getString("json"));
 	}
 	
 	@Test
@@ -147,6 +163,20 @@ public class UnirestTest {
 	public void testGzip() throws UnirestException, JSONException {
 		HttpResponse<JsonNode> jsonResponse =
 				Unirest.get("http://httpbin.org/gzip").asJson();
+		assertTrue(jsonResponse.getHeaders().size() > 0);
+		assertTrue(jsonResponse.getBody().toString().length() > 0);
+		assertFalse(jsonResponse.getRawBody() == null);
+		assertEquals(200, jsonResponse.getCode());
+		
+		JsonNode json = jsonResponse.getBody();
+		assertFalse(json.isArray());
+		assertTrue(json.getObject().getBoolean("gzipped"));
+	}
+	
+	@Test
+	public void testGzipAsync() throws UnirestException, JSONException, InterruptedException, ExecutionException {
+		HttpResponse<JsonNode> jsonResponse =
+				Unirest.get("http://httpbin.org/gzip").asJsonAsync().get();
 		assertTrue(jsonResponse.getHeaders().size() > 0);
 		assertTrue(jsonResponse.getBody().toString().length() > 0);
 		assertFalse(jsonResponse.getRawBody() == null);
