@@ -25,6 +25,8 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package com.mashape.unirest.request.body;
 
+import java.io.UnsupportedEncodingException;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.StringEntity;
 
@@ -55,7 +57,11 @@ public class RequestBodyEntity extends BaseRequest implements Body {
 	}
 
 	public HttpEntity getEntity() {
-		return new StringEntity(body.toString(), UTF_8);
-	}
+        try {
+            return new StringEntity(body.toString(), UTF_8);
+        } catch (UnsupportedEncodingException e) {
+            throw new AssertionError("UTF-8 Encoding should be supported");
+        }
+    }
 
 }
