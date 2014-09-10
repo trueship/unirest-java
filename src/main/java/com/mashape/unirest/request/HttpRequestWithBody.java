@@ -39,6 +39,11 @@ public class HttpRequestWithBody extends HttpRequest {
 	public HttpRequestWithBody(HttpMethod method, String url) {
 		super(method, url);
 	}
+	
+	public HttpRequestWithBody routeParam(String name, String value) {
+		super.routeParam(name, value);
+		return this;
+	}
 
 	@Override
 	public HttpRequestWithBody header(String name, String value) {
@@ -46,23 +51,24 @@ public class HttpRequestWithBody extends HttpRequest {
 	}
 	
 	@Override
-	public HttpRequest headers(Map<String, String> headers) {
-		return super.headers(headers);
+	public HttpRequestWithBody headers(Map<String, String> headers) {
+		return (HttpRequestWithBody) super.headers(headers);
 	}
 	
+	@Override
 	public HttpRequestWithBody basicAuth(String username, String password) {
 		super.basicAuth(username, password);
 		return this;
 	}
 
 	public MultipartBody field(String name, Object value) {
-		MultipartBody body =  new MultipartBody(this).field(name, (value == null) ? "" : value.toString());
+		MultipartBody body = new MultipartBody(this).field(name, (value == null) ? "" : value.toString());
 		this.body = body;
 		return body;
 	}
 	
 	public MultipartBody field(String name, File file) {
-		MultipartBody body =  new MultipartBody(this).field(name, file);
+		MultipartBody body = new MultipartBody(this).field(name, file);
 		this.body = body;
 		return body;
 	}

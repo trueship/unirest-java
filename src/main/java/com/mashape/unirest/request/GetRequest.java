@@ -38,6 +38,21 @@ public class GetRequest extends HttpRequest {
 		super(method, url);
 	}
 
+	public GetRequest routeParam(String name, String value) {
+		super.routeParam(name, value);
+		return this;
+	}
+	
+	@Override
+	public GetRequest header(String name, String value) {
+		return (GetRequest) super.header(name, value);
+	}
+	
+	@Override
+	public GetRequest headers(Map<String, String> headers) {
+		return (GetRequest) super.headers(headers);
+	}
+	
 	public GetRequest field(String name, Object value) {
 		StringBuilder queryString  = new StringBuilder();
 		if (this.url.contains("?")) {
@@ -67,6 +82,7 @@ public class GetRequest extends HttpRequest {
 		return this;
 	}
 	
+	@Override
 	public GetRequest basicAuth(String username, String password) {
 		super.basicAuth(username, password);
 		return this;
