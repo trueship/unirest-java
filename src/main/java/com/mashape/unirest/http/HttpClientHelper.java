@@ -142,8 +142,8 @@ public class HttpClientHelper {
             if (trace.isDebugEnabled())
                 trace.info("Unirest request:\n" + requestObj);
 
-            org.apache.http.HttpResponse response = client.execute(requestObj);
-			HttpResponse<T> httpResponse = new HttpResponse<T>(response, responseClass);
+                response = client.execute(requestObj);
+	        HttpResponse<T> httpResponse = new HttpResponse<T>(response, responseClass);
 
             if (trace.isDebugEnabled())
                 trace.info("Unirest response:\n" + httpResponse.getHeaders() + "\n" + httpResponse.getBody());
