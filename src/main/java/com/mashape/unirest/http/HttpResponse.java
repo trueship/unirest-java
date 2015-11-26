@@ -21,9 +21,17 @@ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
 LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
+ */
 
 package com.mashape.unirest.http;
+
+import com.mashape.unirest.http.options.Option;
+import com.mashape.unirest.http.options.Options;
+import com.mashape.unirest.http.utils.ResponseUtils;
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.StatusLine;
+import org.apache.http.util.EntityUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -32,15 +40,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-
-import com.mashape.unirest.http.utils.ResponseUtils;
 import org.apache.log4j.Logger;
 
 public class HttpResponse<T> {
 
-	private int code;
+	private int statusCode;
+	private String statusText;
 	private Headers headers = new Headers();
 	private InputStream rawBody;
 	private T body;
@@ -48,20 +53,25 @@ public class HttpResponse<T> {
 	@SuppressWarnings("unchecked")
 	public HttpResponse(org.apache.http.HttpResponse response, Class<T> responseClass) {
 		HttpEntity responseEntity = response.getEntity();
+		ObjectMapper objectMapper = (ObjectMapper) Options.getOption(Option.OBJECT_MAPPER);
 
 		Header[] allHeaders = response.getAllHeaders();
-		for(Header header : allHeaders) {
+		for (Header header : allHeaders) {
 			String headerName = header.getName().toLowerCase();
 			List<String> list = headers.get(headerName);
-			if (list == null) list = new ArrayList<String>();
+			if (list == null)
+				list = new ArrayList<String>();
 			list.add(header.getValue());
 			headers.put(headerName, list);
 		}
-		this.code = response.getStatusLine().getStatusCode();
+
+		StatusLine statusLine = response.getStatusLine();
+		this.statusCode = statusLine.getStatusCode();
+		this.statusText = statusLine.getReasonPhrase();
 
 		if (responseEntity != null) {
 			String charset = "UTF-8";
-			
+
 			Header contentType = responseEntity.getContentType();
 			if (contentType != null) {
 				String responseCharset = ResponseUtils.getCharsetFromContentType(contentType.getValue());
@@ -69,7 +79,7 @@ public class HttpResponse<T> {
 					charset = responseCharset;
 				}
 			}
-		
+
 			try {
 				byte[] rawBody;
 				try {
@@ -81,8 +91,7 @@ public class HttpResponse<T> {
 				} catch (IOException e2) {
 					throw new RuntimeException(e2);
 				}
-				InputStream inputStream = new ByteArrayInputStream(rawBody);
-				this.rawBody = inputStream;
+				this.rawBody = new ByteArrayInputStream(rawBody);
 
 				if (JsonNode.class.equals(responseClass)) {
 					String jsonString = new String(rawBody, charset).trim();
@@ -96,17 +105,29 @@ public class HttpResponse<T> {
 					this.body = (T) new String(rawBody, charset);
 				} else if (InputStream.class.equals(responseClass)) {
 					this.body = (T) this.rawBody;
+				} else if (objectMapper != null) {
+					this.body = objectMapper.readValue(new String(rawBody, charset), responseClass);
 				} else {
-					throw new Exception("Unknown result type. Only String, JsonNode and InputStream are supported.");
+					throw new Exception("Only String, JsonNode and InputStream are supported, or an ObjectMapper implementation is required.");
 				}
             } catch (Exception e) {
 				throw new RuntimeException("Unable to parse response.", e);
 			}
 		}
+
+		try {
+			EntityUtils.consume(responseEntity);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
-	public int getCode() {
-		return code;
+	public int getStatus() {
+		return statusCode;
+	}
+
+	public String getStatusText() {
+		return statusText;
 	}
 
 	public Headers getHeaders() {
@@ -120,5 +141,4 @@ public class HttpResponse<T> {
 	public T getBody() {
 		return body;
 	}
-
 }

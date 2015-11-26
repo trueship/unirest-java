@@ -64,12 +64,12 @@ import org.apache.log4j.Logger;
 
 public class HttpClientHelper {
 
+	private static final String CONTENT_TYPE = "content-type";
 	private static final String ACCEPT_ENCODING_HEADER = "accept-encoding";
 	private static final String USER_AGENT_HEADER = "user-agent";
 	private static final String USER_AGENT = "unirest-java/1.3.11";
 
-	private static <T> FutureCallback<org.apache.http.HttpResponse> prepareCallback(final Class<T> responseClass,
-			final Callback<T> callback) {
+	private static <T> FutureCallback<org.apache.http.HttpResponse> prepareCallback(final Class<T> responseClass, final Callback<T> callback) {
 		if (callback == null)
 			return null;
 
@@ -100,8 +100,7 @@ public class HttpClientHelper {
 			asyncIdleConnectionMonitorThread.start();
 		}
 
-		final Future<org.apache.http.HttpResponse> future = asyncHttpClient.execute(requestObj,
-				prepareCallback(responseClass, callback));
+		final Future<org.apache.http.HttpResponse> future = asyncHttpClient.execute(requestObj, prepareCallback(responseClass, callback));
 
 		return new Future<HttpResponse<T>>() {
 
@@ -122,8 +121,7 @@ public class HttpClientHelper {
 				return new HttpResponse<T>(httpResponse, responseClass);
 			}
 
-			public HttpResponse<T> get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException,
-					TimeoutException {
+			public HttpResponse<T> get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
 				org.apache.http.HttpResponse httpResponse = future.get(timeout, unit);
 				return new HttpResponse<T>(httpResponse, responseClass);
 			}
@@ -137,6 +135,9 @@ public class HttpClientHelper {
 															// is thread-safe
 
         final Logger trace = Logger.getLogger("trace");
+
+		org.apache.http.HttpResponse response;
+
 		try {
             if (trace.isDebugEnabled())
                 trace.info("Unirest request:\n" + requestObj);
@@ -158,13 +159,6 @@ public class HttpClientHelper {
 
 	private static HttpRequestBase prepareRequest(HttpRequest request, boolean async) {
 
-		if (!request.getHeaders().containsKey(USER_AGENT_HEADER)) {
-			request.header(USER_AGENT_HEADER, USER_AGENT);
-		}
-		if (!request.getHeaders().containsKey(ACCEPT_ENCODING_HEADER)) { 
-			request.header(ACCEPT_ENCODING_HEADER, "gzip");
-		}
-
 		Object defaultHeaders = Options.getOption(Option.DEFAULT_HEADERS);
 		if (defaultHeaders != null) {
 			@SuppressWarnings("unchecked")
@@ -172,6 +166,13 @@ public class HttpClientHelper {
 			for (Entry<String, String> entry : entrySet) {
 				request.header(entry.getKey(), entry.getValue());
 			}
+		}
+
+		if (!request.getHeaders().containsKey(USER_AGENT_HEADER)) {
+			request.header(USER_AGENT_HEADER, USER_AGENT);
+		}
+		if (!request.getHeaders().containsKey(ACCEPT_ENCODING_HEADER)) {
+			request.header(ACCEPT_ENCODING_HEADER, "gzip");
 		}
 
 		HttpRequestBase reqObj = null;
@@ -192,7 +193,7 @@ public class HttpClientHelper {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
-		
+
 		switch (request.getHttpMethod()) {
 		case GET:
 			reqObj = new HttpGet(urlToRequest);
@@ -216,12 +217,12 @@ public class HttpClientHelper {
 			reqObj = new HttpHead(urlToRequest);
 			break;
 		}
-		
+
 		Set<Entry<String, List<String>>> entrySet = request.getHeaders().entrySet();
-		for(Entry<String, List<String>> entry : entrySet) {
+		for (Entry<String, List<String>> entry : entrySet) {
 			List<String> values = entry.getValue();
 			if (values != null) {
-				for(String value : values) {
+				for (String value : values) {
 					reqObj.addHeader(entry.getKey(), value);
 				}
 			}
@@ -232,7 +233,9 @@ public class HttpClientHelper {
 			if (request.getBody() != null) {
 				HttpEntity entity = request.getBody().getEntity();
 				if (async) {
-					reqObj.setHeader(entity.getContentType());
+					if (reqObj.getHeaders(CONTENT_TYPE) == null || reqObj.getHeaders(CONTENT_TYPE).length == 0) {
+						reqObj.setHeader(entity.getContentType());
+					}
 					try {
 						ByteArrayOutputStream output = new ByteArrayOutputStream();
 						entity.writeTo(output);

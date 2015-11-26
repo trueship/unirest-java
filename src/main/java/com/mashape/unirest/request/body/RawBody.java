@@ -23,30 +23,31 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.mashape.unirest.http;
+package com.mashape.unirest.request.body;
 
-import java.net.URI;
+import com.mashape.unirest.request.BaseRequest;
+import com.mashape.unirest.request.HttpRequest;
+import org.apache.http.HttpEntity;
+import org.apache.http.entity.ByteArrayEntity;
 
-import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
+public class RawBody extends BaseRequest implements Body {
 
-class HttpPatchWithBody extends HttpEntityEnclosingRequestBase {
-	public static final String METHOD_NAME = "PATCH";
+	private byte[] body;
 
-	public String getMethod() {
-		return METHOD_NAME;
+	public RawBody(HttpRequest httpRequest) {
+		super(httpRequest);
 	}
 
-	public HttpPatchWithBody(final String uri) {
-		super();
-		setURI(URI.create(uri));
+	public RawBody body(byte[] body) {
+		this.body = body;
+		return this;
 	}
 
-	public HttpPatchWithBody(final URI uri) {
-		super();
-		setURI(uri);
+	public Object getBody() {
+		return body;
 	}
 
-	public HttpPatchWithBody() {
-		super();
+	public HttpEntity getEntity() {
+		return new ByteArrayEntity(body);
 	}
 }
